@@ -1,5 +1,5 @@
 
-data <- read.csv("Desktop1.csv")
+data <- read.csv("Dataset.csv")
 library(ROSE)
 library(randomForest)
 library(caret)
@@ -22,7 +22,7 @@ library(randomForest)
 library(caret)
 library(e1071)
 
-sample <- read.csv("Desktop1.csv")
+sample <- read.csv("Dataset.csv")
 
 sample$is_promoted <- as.factor(sample$is_promoted)
 
@@ -62,7 +62,6 @@ cat("Oversampled Model Precision:", precision_oversampled, "\n")
 cat("Oversampled Model F1 Score:", f1_score_oversampled, "\n")
 cat("Oversampled Model Recall:", recall_oversampled, "\n")
 
-# K-fold Cross-validation
 k <- 5
 folds <- createFolds(train$is_promoted, k = k)
 
@@ -115,7 +114,7 @@ cat("\n")
 
 set.seed(42)
 data_size <- floor(0.8 * nrow(data))
-train_indices <- sample(1:nrow(data), size = data_size)  # Corrected line
+train_indices <- sample(1:nrow(data), size = data_size)  
 train_data <- data[train_indices, ]
 test_data <- data[-train_indices, ]
 
@@ -170,52 +169,52 @@ cat("Mean Sensitivity:", mean_sensitivity, "\n")
 ############################## ANN ##################################
 cat("\n                     RESULTS FOR ANN")
 cat("\n ")
-# Ensure that is_promoted is a binary factor
+
 data$is_promoted <- factor(data$is_promoted, levels = c("0", "1"))
 
-# Normalize input features
+
 preProcessDesc <- preProcess(data[, c("previous_year_rating", "length_of_service")], method = c("center", "scale"))
 data[, c("previous_year_rating", "length_of_service")] <- predict(preProcessDesc, data[, c("previous_year_rating", "length_of_service")])
 
-# Define your formula
+
 formula <- as.formula("is_promoted ~ previous_year_rating + length_of_service")
 
-# Perform a 70:30 split
+
 set.seed(123)
 ind <- sample(2, nrow(data), replace = TRUE, prob = c(0.7, 0.3))
 train_data <- data[ind == 1, ]
 test_data <- data[ind == 2, ]
 
-# Create a trainControl object for cross-validation on the training data
-ctrl <- trainControl(method = "cv",  # k-fold cross-validation
-                     number = 5,     # Number of folds (adjust as needed)
+
+ctrl <- trainControl(method = "cv", 
+                     number = 5,     
                      verboseIter = TRUE)
 
-# Define the tuning grid with size and decay
+
 tuning_grid <- expand.grid(size = c(15, 20, 25), decay = c(0.01, 0.001, 0.0001))
 
-# Perform oversampling with ovun.sample on the training data
+
 oversampled_train_data <- ovun.sample(is_promoted ~ ., data = train_data, method = "over", N = 70600, seed = 123)$data
 
-# Train the neural network model using cross-validation with oversampled training data
+
 set.seed(123)
 sink("training_output.txt")
 model <- train(formula,
-               data = oversampled_train_data,  # Use oversampled training data
-               method = "nnet",                # Specify "nnet" for classification
+               data = oversampled_train_data,  
+               method = "nnet",               
                trControl = ctrl,
                preProcess = c("center", "scale"),
-               tuneGrid = tuning_grid,         # Specify tuning grid
-               linout = FALSE,                 # linear.output = FALSE
+               tuneGrid = tuning_grid,         
+               linout = FALSE,                 
                lifesign = "full",
                stepmax = 100000)
 sink()
 
-# Access other performance metrics from the model object
+
 conf_matrix <- confusionMatrix(predict(model, newdata = test_data), test_data$is_promoted)
 cat("\nConfusion Matrix:\n")
 print(conf_matrix$table)
-# Extract metrics
+
 accuracy <- conf_matrix$overall["Accuracy"]
 precision <- conf_matrix$byClass["Precision"]
 recall <- conf_matrix$byClass["Sensitivity"]
