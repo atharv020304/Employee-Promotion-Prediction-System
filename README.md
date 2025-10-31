@@ -1,1 +1,1 @@
-All details about Project are in Document.
+All details about Project are mentioned in Document.
